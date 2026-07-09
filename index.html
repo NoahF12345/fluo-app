@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#15162E">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Fluo</title>
+<style>
+  :root{
+    --bg:#15162E; --bg-soft:#1D1F42; --card:#252852;
+    --aqua:#FFB648; --coral:#FF6B4A; --gold:#F2C14E; --azure:#6FA8DC; --rose:#FF8FA3;
+    --text:#F6F1E7; --text-dim:#8D90AC; --radius:20px;
+    --line: rgba(255,182,72,0.16);
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; padding:0; height:100%;
+    background:
+      radial-gradient(circle at 8% 4%, rgba(255,182,72,0.10), transparent 40%),
+      radial-gradient(circle at 92% 0%, rgba(255,107,74,0.08), transparent 45%),
+      var(--bg);
+    color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    overscroll-behavior:none;
+  }
+  #app{ max-width:480px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; padding-bottom:86px; }
+  header{ padding:26px 20px 6px; }
+  header .eyebrow{ font-size:10.5px; letter-spacing:4px; text-transform:uppercase; color:var(--coral); font-weight:800; }
+  header h1{ font-size:29px; font-weight:800; letter-spacing:-0.8px; margin:5px 0 0; font-variant-numeric:tabular-nums; }
+  header h1::after{ content:''; display:block; width:34px; height:4px; background:var(--aqua); border-radius:4px; margin-top:10px; }
+  main{ flex:1; padding:12px 20px 20px; }
+  .view{ display:none; animation:fade .25s ease; }
+  .view.active{ display:block; }
+  @keyframes fade{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+  .card{ background:var(--card); border-radius:var(--radius); padding:18px 20px; margin-bottom:14px;
+    border:1px solid rgba(255,182,72,0.10); box-shadow:0 10px 24px rgba(0,0,0,0.22); }
+  .card h3{ margin:0 0 12px; font-size:11.5px; letter-spacing:2px; text-transform:uppercase; color:var(--coral); font-weight:800; }
+  .row{ display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.06); gap:10px; }
+  .row:last-child{ border-bottom:none; }
+  .row label{ font-size:14.5px; font-weight:600; }
+  .row .sub{ font-size:11.5px; color:var(--text-dim); margin-top:2px; }
+  input[type=time], input[type=text], input[type=number], input[type=password], select{
+    background:var(--bg-soft); border:1px solid rgba(255,182,72,0.25); color:var(--text);
+    border-radius:10px; padding:8px 10px; font-size:14px; font-family:inherit;
+  }
+  input[type=text]{ width:120px; }
+  .switch{ position:relative; width:46px; height:26px; flex-shrink:0; }
+  .switch input{ opacity:0; width:0; height:0; }
+  .slider{ position:absolute; inset:0; background:rgba(255,255,255,0.15); border-radius:100px; cursor:pointer; transition:.2s; }
+  .slider::before{ content:""; position:absolute; width:20px; height:20px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.2s; }
+  .switch input:checked + .slider{ background:var(--aqua); }
+  .switch input:checked + .slider::before{ transform:translateX(20px); }
+
+  /* EAU */
+  .ring-wrap{ display:flex; flex-direction:column; align-items:center; margin:12px 0 18px; }
+  .ring{ position:relative; width:168px; height:168px; }
+  .ring svg{ transform:rotate(-90deg); width:100%; height:100%; }
+  .ring circle{ fill:none; stroke-width:12; }
+  .ring .track{ stroke:rgba(255,182,72,0.12); }
+  .ring .prog{ stroke:var(--aqua); stroke-linecap:round; transition:stroke-dashoffset .4s ease; }
+  .ring-center{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .ring-center .num{ font-size:30px; font-weight:800; }
+  .ring-center .cl{ font-size:12.5px; color:var(--aqua); font-weight:700; margin-top:2px; }
+  .ring-center .label{ font-size:10.5px; color:var(--text-dim); letter-spacing:1px; text-transform:uppercase; }
+  .btn-drink{ background:var(--aqua); color:#241300; border:none; font-weight:800; font-size:15px;
+    padding:15px 26px; border-radius:100px; width:100%; max-width:280px; margin:6px auto 0; display:block; }
+  .btn-drink:active{ transform:scale(0.96); }
+  .status-line{ text-align:center; color:var(--text-dim); font-size:12.5px; margin-top:10px; }
+
+  /* NOTES */
+  .note-input{ background:var(--card); border-radius:var(--radius); padding:14px 16px; margin-bottom:16px; }
+  .note-input textarea{ width:100%; background:transparent; border:none; color:var(--text); font-family:inherit; font-size:15px; resize:none; min-height:46px; outline:none; }
+  .note-input textarea::placeholder{ color:var(--text-dim); }
+  .note-add-row{ display:flex; justify-content:flex-end; margin-top:6px; }
+  .note-add-row button, .btn-primary{ background:var(--aqua); color:#241300; border:none; font-weight:800; padding:10px 20px; border-radius:100px; font-size:14px; }
+  .note{ background:var(--card); border-radius:16px; padding:14px 16px; margin-bottom:10px; display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
+  .note p{ margin:0; font-size:14px; line-height:1.45; white-space:pre-wrap; word-break:break-word; }
+  .note .meta{ font-size:11px; color:var(--text-dim); margin-top:6px; }
+  .note button{ background:none; border:none; color:var(--text-dim); font-size:18px; padding:2px 4px; flex-shrink:0; }
+  .empty{ text-align:center; color:var(--text-dim); padding:36px 10px; font-size:13.5px; }
+  .empty .glyph{ font-size:32px; margin-bottom:10px; }
+
+  /* REPAS */
+  .btn-primary.full{ width:100%; margin-top:0; }
+  .btn-secondary{ background:transparent; color:var(--aqua); border:1px solid rgba(255,182,72,0.4); font-weight:700; font-size:13px; padding:10px 18px; border-radius:100px; width:100%; margin-top:8px; }
+  .photo-preview{ width:100%; border-radius:16px; margin:10px 0; max-height:220px; object-fit:cover; }
+  .item-card{ background:var(--bg-soft); border-radius:14px; padding:12px 14px; margin-bottom:8px; }
+  .item-card .item-name{ font-weight:700; font-size:14px; margin-bottom:8px; }
+  .item-fields{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .field{ display:flex; flex-direction:column; gap:3px; }
+  .field label{ font-size:10.5px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.5px; }
+  .field input{ width:100%; }
+  .item-remove{ text-align:right; margin-top:6px; }
+  .item-remove button{ background:none; border:none; color:var(--coral); font-size:12px; font-weight:700; }
+  .meal-card{ background:var(--card); border-radius:16px; padding:14px 16px; margin-bottom:10px; }
+  .meal-card .top{ display:flex; justify-content:space-between; align-items:flex-start; }
+  .meal-card .meta{ font-size:11px; color:var(--text-dim); margin-top:2px; }
+  .meal-card .macros{ font-size:12.5px; color:var(--text-dim); margin-top:8px; }
+  .meal-card .cal{ font-weight:800; color:var(--gold); font-size:15px; }
+  .meal-card button{ background:none; border:none; color:var(--text-dim); font-size:18px; }
+  .spinner{ display:inline-block; width:16px; height:16px; border:2px solid rgba(255,255,255,0.25); border-top-color:var(--aqua); border-radius:50%; animation:spin .7s linear infinite; vertical-align:-3px; margin-right:6px; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  /* OBJECTIFS */
+  .goal-bar-wrap{ margin-bottom:14px; }
+  .goal-bar-top{ display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px; }
+  .goal-bar-top .name{ font-weight:700; }
+  .goal-bar-top .val{ color:var(--text-dim); }
+  .goal-bar{ height:8px; border-radius:100px; background:rgba(255,255,255,0.08); overflow:hidden; }
+  .goal-bar .fill{ height:100%; border-radius:100px; transition:width .3s ease; }
+
+  /* SEANCES */
+  .day-row{ display:flex; align-items:center; justify-content:space-between; padding:9px 0; border-bottom:1px solid rgba(255,255,255,0.06); gap:10px; }
+  .day-row:last-child{ border-bottom:none; }
+  .day-row .dayname{ font-size:13.5px; font-weight:700; width:40px; flex-shrink:0; color:var(--text-dim); }
+
+  .hint{ font-size:11.5px; color:var(--text-dim); line-height:1.5; margin:6px 0 0; }
+  .toast{ position:fixed; bottom:98px; left:50%; transform:translateX(-50%); background:var(--card); border:1px solid rgba(255,182,72,0.4); padding:10px 18px; border-radius:100px; font-size:13px; opacity:0; pointer-events:none; transition:opacity .25s ease; z-index:50; max-width:88%; text-align:center; }
+  .toast.show{ opacity:1; }
+
+  nav{ position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:480px;
+    background:rgba(21,22,46,0.94); backdrop-filter:blur(14px); border-top:1px solid rgba(255,182,72,0.14);
+    display:flex; gap:2px; padding:8px 6px calc(8px + env(safe-area-inset-bottom)); overflow-x:auto; }
+  nav button{ flex:1; background:none; border:none; color:var(--text-dim); display:flex; flex-direction:column; align-items:center; gap:3px; padding:7px 2px; border-radius:14px; font-size:9.5px; font-weight:700; white-space:nowrap; min-width:58px; transition:background .15s ease, color .15s ease; }
+  nav button .ico{ font-size:18px; }
+  nav button.active{ color:#1A1200; background:var(--aqua); }
+  ::-webkit-scrollbar{ display:none; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="eyebrow">Fluo · local & IA repas</div>
+    <h1 id="pageTitle">Hydratation</h1>
+  </header>
+
+  <main>
+    <!-- EAU -->
+    <section class="view active" id="view-water">
+      <div class="ring-wrap">
+        <div class="ring">
+          <svg viewBox="0 0 168 168">
+            <circle class="track" cx="84" cy="84" r="72"></circle>
+            <g id="ringTicks" stroke="rgba(255,182,72,0.35)" stroke-width="2"></g>
+            <circle class="prog" id="ringProg" cx="84" cy="84" r="72" stroke-dasharray="452" stroke-dashoffset="452"></circle>
+          </svg>
+          <div class="ring-center">
+            <div class="num" id="glassCount">0</div>
+            <div class="cl" id="clCount">0 cl</div>
+            <div class="label">verres</div>
+          </div>
+        </div>
+        <button class="btn-drink" onclick="logDrink()">J'ai bu un verre</button>
+        <div class="status-line" id="statusLine">Configure tes horaires ci-dessous</div>
+      </div>
+      <div class="card">
+        <h3>Rappels</h3>
+        <div class="row"><div><label>Actifs</label><div class="sub">Tant que l'appli reste ouverte</div></div>
+          <label class="switch"><input type="checkbox" id="toggleActive" onchange="onWaterChange()"><span class="slider"></span></label></div>
+        <div class="row"><label>Début</label><input type="time" id="startTime" value="10:00" onchange="onWaterChange()"></div>
+        <div class="row"><label>Fin</label><input type="time" id="endTime" value="20:00" onchange="onWaterChange()"></div>
+        <div class="row"><label>Intervalle</label>
+          <select id="interval" onchange="onWaterChange()">
+            <option value="15">15 min</option><option value="30" selected>30 min</option><option value="60">60 min</option>
+          </select></div>
+        <div class="row"><label>Volume / verre</label>
+          <input type="number" id="glassVolume" value="25" min="1" max="100" style="width:64px" onchange="onWaterChange()"> cl</div>
+      </div>
+    </section>
+
+    <!-- SALLE -->
+    <section class="view" id="view-notes">
+      <div class="note-input">
+        <textarea id="noteText" placeholder="Note pour la salle (record, ressenti, réglage machine…)" rows="2"></textarea>
+        <div class="note-add-row"><button onclick="addNote()">Ajouter</button></div>
+      </div>
+      <div id="notesList"></div>
+    </section>
+
+    <!-- REPAS -->
+    <section class="view" id="view-meals">
+      <div class="card" id="captureCard">
+        <h3>Nouveau repas</h3>
+        <input type="file" accept="image/*" capture="environment" id="photoInput" style="display:none" onchange="onPhotoSelected(event)">
+        <button class="btn-primary full" onclick="document.getElementById('photoInput').click()">📷 Prendre une photo</button>
+        <button class="btn-secondary" onclick="addManualItem()">Ajouter un aliment manuellement</button>
+        <img id="photoPreview" class="photo-preview" style="display:none">
+        <div id="analyzeStatus" class="hint"></div>
+        <div id="itemsList"></div>
+        <button class="btn-primary full" id="saveMealBtn" style="display:none; margin-top:10px;" onclick="saveMeal()">Enregistrer ce repas</button>
+      </div>
+      <h3 style="font-size:12.5px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-dim); margin:18px 4px 10px;">Aujourd'hui</h3>
+      <div id="mealsList"></div>
+    </section>
+
+    <!-- OBJECTIFS -->
+    <section class="view" id="view-goals">
+      <div class="card">
+        <h3>Aujourd'hui</h3>
+        <div id="goalBars"></div>
+      </div>
+      <div class="card">
+        <h3>Objectifs quotidiens</h3>
+        <div class="row"><label>Calories</label><input type="number" id="goalCal" onchange="onGoalsChange()"></div>
+        <div class="row"><label>Protéines (g)</label><input type="number" id="goalProt" onchange="onGoalsChange()"></div>
+        <div class="row"><label>Glucides (g)</label><input type="number" id="goalCarb" onchange="onGoalsChange()"></div>
+        <div class="row"><label>Lipides (g)</label><input type="number" id="goalFat" onchange="onGoalsChange()"></div>
+      </div>
+      <div class="card">
+        <h3>Clé API Gemini (pour l'analyse photo)</h3>
+        <input type="password" id="geminiKey" placeholder="Colle ta clé ici" style="width:100%;" onchange="onGoalsChange()">
+        <p class="hint">Gratuite sur aistudio.google.com avec ton compte Google. Elle reste uniquement sur ton téléphone.</p>
+      </div>
+    </section>
+
+    <!-- SEANCES -->
+    <section class="view" id="view-workout">
+      <div class="card">
+        <h3>Planning de la semaine</h3>
+        <div id="daysList"></div>
+      </div>
+      <div class="card">
+        <h3>Rappel</h3>
+        <div class="row"><label>Heure du rappel</label><input type="time" id="workoutTime" value="18:00" onchange="onWorkoutChange()"></div>
+        <div class="sub" style="margin-top:6px;">Envoyé les jours où une séance est définie, chaque semaine, tant que l'appli est ouverte.</div>
+      </div>
+    </section>
+  </main>
+
+  <nav>
+    <button class="active" data-view="water" onclick="switchView('water')"><span class="ico">💧</span>Eau</button>
+    <button data-view="notes" onclick="switchView('notes')"><span class="ico">📝</span>Salle</button>
+    <button data-view="meals" onclick="switchView('meals')"><span class="ico">🍽️</span>Repas</button>
+    <button data-view="goals" onclick="switchView('goals')"><span class="ico">🎯</span>Objectifs</button>
+    <button data-view="workout" onclick="switchView('workout')"><span class="ico">🏋️</span>Séances</button>
+  </nav>
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+const STORE_KEY = 'fluo_data_v3';
+const DAYS = [['Mon','Lun'],['Tue','Mar'],['Wed','Mer'],['Thu','Jeu'],['Fri','Ven'],['Sat','Sam'],['Sun','Dim']];
+
+function loadData(){
+  try{ const raw = localStorage.getItem(STORE_KEY); if(raw) return JSON.parse(raw); }catch(e){}
+  return {
+    water:{ active:false, start:"10:00", end:"20:00", interval:30, glassVolume:25 },
+    workout:{ time:"18:00", days:{ Mon:"",Tue:"",Wed:"",Thu:"",Fri:"",Sat:"",Sun:"" } },
+    notes:[], glassLog:{}, meals:{},
+    goals:{ cal:2200, prot:150, carb:220, fat:70 },
+    geminiKey:''
+  };
+}
+function saveLocalRaw(){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(data)); }
+  catch(e){ console.warn('Sauvegarde locale impossible ici — ouvre le fichier dans ton navigateur.'); }
+}
+let data = loadData();
+function todayKey(){ const d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2400); }
+
+const titles = { water:'Hydratation', notes:'Notes salle', meals:'Repas', goals:'Objectifs', workout:'Séances' };
+function switchView(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active', b.dataset.view===name));
+  document.getElementById('pageTitle').textContent = titles[name];
+  if(name==='goals') renderGoals();
+}
+
+/* ---------- EAU ---------- */
+function renderWaterUI(){
+  document.getElementById('toggleActive').checked = data.water.active;
+  document.getElementById('startTime').value = data.water.start;
+  document.getElementById('endTime').value = data.water.end;
+  document.getElementById('interval').value = String(data.water.interval);
+  document.getElementById('glassVolume').value = data.water.glassVolume;
+  const count = data.glassLog[todayKey()] || 0;
+  document.getElementById('glassCount').textContent = count;
+  document.getElementById('clCount').textContent = (count * data.water.glassVolume) + ' cl';
+  const goal = 8, circumference = 452;
+  const pct = Math.min(count/goal, 1);
+  document.getElementById('ringProg').style.strokeDashoffset = circumference - pct*circumference;
+  document.getElementById('statusLine').textContent = data.water.active
+    ? `Rappel toutes les ${data.water.interval} min entre ${data.water.start} et ${data.water.end}`
+    : "Rappels désactivés";
+}
+function onWaterChange(){
+  data.water.active = document.getElementById('toggleActive').checked;
+  data.water.start = document.getElementById('startTime').value;
+  data.water.end = document.getElementById('endTime').value;
+  data.water.interval = parseInt(document.getElementById('interval').value, 10);
+  data.water.glassVolume = parseInt(document.getElementById('glassVolume').value, 10) || 25;
+  saveLocalRaw(); renderWaterUI();
+  if(data.water.active && typeof Notification!=='undefined' && Notification.permission==='default') Notification.requestPermission();
+}
+function logDrink(){ const k=todayKey(); data.glassLog[k]=(data.glassLog[k]||0)+1; saveLocalRaw(); renderWaterUI(); }
+function notify(title, body){
+  if(typeof Notification!=='undefined' && Notification.permission==='granted'){
+    try{ new Notification(title,{body}); }catch(e){}
+  }
+}
+let lastWaterFire = null, lastWorkoutFire = null;
+function checkReminders(){
+  const now = new Date();
+  const nowMin = now.getHours()*60+now.getMinutes();
+
+  if(data.water.active){
+    const [sh,sm]=data.water.start.split(':').map(Number), [eh,em]=data.water.end.split(':').map(Number);
+    const startMin=sh*60+sm, endMin=eh*60+em;
+    if(nowMin>=startMin && nowMin<=endMin && (nowMin-startMin)%data.water.interval===0){
+      const fireKey = todayKey()+'-'+nowMin;
+      if(lastWaterFire!==fireKey){ lastWaterFire=fireKey; notify('💧 Bois de l\'eau', "Petit rappel Fluo : un verre d'eau ?"); }
+    }
+  }
+  const weekdayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const wd = weekdayNames[now.getDay()];
+  const session = data.workout.days[wd];
+  if(session && session.trim()!==''){
+    const [th,tm]=data.workout.time.split(':').map(Number);
+    const targetMin = th*60+tm;
+    if(nowMin===targetMin){
+      const fireKey = todayKey();
+      if(lastWorkoutFire!==fireKey){ lastWorkoutFire=fireKey; notify('🏋️ Séance du jour', `C'est aujourd'hui : ${session}`); }
+    }
+  }
+}
+setInterval(checkReminders, 20000);
+
+/* ---------- NOTES SALLE ---------- */
+function renderNotes(){
+  const list = document.getElementById('notesList');
+  if(data.notes.length===0){ list.innerHTML = `<div class="empty"><div class="glyph">🗒️</div>Aucune note pour l'instant</div>`; return; }
+  list.innerHTML = data.notes.slice().reverse().map(n => `
+    <div class="note"><div><p>${escapeHtml(n.text)}</p><div class="meta">${n.date}</div></div>
+    <button onclick="deleteNote(${n.id})">✕</button></div>`).join('');
+}
+function addNote(){
+  const ta=document.getElementById('noteText'); const text=ta.value.trim(); if(!text) return;
+  data.notes.push({ id:Date.now(), text, date:new Date().toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) });
+  ta.value=''; saveLocalRaw(); renderNotes();
+}
+function deleteNote(id){ data.notes = data.notes.filter(n=>n.id!==id); saveLocalRaw(); renderNotes(); }
+
+/* ---------- REPAS ---------- */
+let pendingItems = [];
+
+function onPhotoSelected(evt){
+  const file = evt.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const dataUrl = reader.result;
+    document.getElementById('photoPreview').src = dataUrl;
+    document.getElementById('photoPreview').style.display = 'block';
+    await analyzePhoto(dataUrl, file.type);
+  };
+  reader.readAsDataURL(file);
+}
+
+async function analyzePhoto(dataUrl, mimeType){
+  const statusEl = document.getElementById('analyzeStatus');
+  if(!data.geminiKey){
+    statusEl.innerHTML = "⚠️ Ajoute ta clé Gemini dans l'onglet Objectifs pour activer l'analyse.";
+    return;
+  }
+  statusEl.innerHTML = '<span class="spinner"></span>Analyse en cours…';
+  const base64 = dataUrl.split(',')[1];
+  const prompt = "Analyse cette photo de repas. Identifie chaque aliment visible séparément. Pour CHAQUE aliment, estime : son nom en français, son poids approximatif en grammes tel que visible sur la photo, puis ses calories totales, protéines (g), glucides (g) et lipides (g) CORRESPONDANT À CE POIDS (pas pour 100g). Réponds uniquement avec un JSON strict de cette forme, sans texte autour : {\"items\":[{\"name\":\"\",\"weight_g\":0,\"calories\":0,\"protein_g\":0,\"carbs_g\":0,\"fat_g\":0}]}";
+
+  try{
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'x-goog-api-key': data.geminiKey },
+      body: JSON.stringify({
+        contents:[{ parts:[ { inline_data:{ mime_type: mimeType, data: base64 } }, { text: prompt } ] }],
+        generationConfig:{ response_mime_type: "application/json" }
+      })
+    });
+    const json = await res.json();
+    if(!res.ok){ throw new Error(json.error?.message || 'Erreur API'); }
+    const text = json.candidates[0].content.parts[0].text;
+    const parsed = JSON.parse(text);
+    pendingItems = (parsed.items || []).map(it => ({
+      id: Date.now()+Math.random(),
+      name: it.name || 'Aliment',
+      weight_g: Math.round(it.weight_g || 0),
+      calories: Math.round(it.calories || 0),
+      protein_g: Math.round(it.protein_g || 0),
+      carbs_g: Math.round(it.carbs_g || 0),
+      fat_g: Math.round(it.fat_g || 0),
+    }));
+    statusEl.innerHTML = '✅ Analyse terminée — vérifie et corrige si besoin.';
+    renderItems();
+  }catch(e){
+    statusEl.innerHTML = '❌ Échec de l\'analyse : ' + escapeHtml(e.message);
+  }
+}
+
+function addManualItem(){
+  pendingItems.push({ id:Date.now()+Math.random(), name:'', weight_g:0, calories:0, protein_g:0, carbs_g:0, fat_g:0 });
+  renderItems();
+}
+function removeItem(id){ pendingItems = pendingItems.filter(i=>i.id!==id); renderItems(); }
+function updateItem(id, field, value){
+  const it = pendingItems.find(i=>i.id===id); if(!it) return;
+  it[field] = (field==='name') ? value : (parseFloat(value)||0);
+}
+function renderItems(){
+  const el = document.getElementById('itemsList');
+  const saveBtn = document.getElementById('saveMealBtn');
+  if(pendingItems.length===0){ el.innerHTML=''; saveBtn.style.display='none'; return; }
+  saveBtn.style.display='block';
+  el.innerHTML = pendingItems.map(it => `
+    <div class="item-card">
+      <input type="text" class="item-name" style="width:100%; background:transparent; border:none; color:var(--text); font-weight:700; font-size:14px; padding:0 0 8px; outline:none;"
+        value="${escapeHtml(it.name)}" placeholder="Nom de l'aliment" oninput="updateItem(${it.id},'name',this.value)">
+      <div class="item-fields">
+        <div class="field"><label>Poids (g)</label><input type="number" value="${it.weight_g}" oninput="updateItem(${it.id},'weight_g',this.value)"></div>
+        <div class="field"><label>Calories</label><input type="number" value="${it.calories}" oninput="updateItem(${it.id},'calories',this.value)"></div>
+        <div class="field"><label>Protéines (g)</label><input type="number" value="${it.protein_g}" oninput="updateItem(${it.id},'protein_g',this.value)"></div>
+        <div class="field"><label>Glucides (g)</label><input type="number" value="${it.carbs_g}" oninput="updateItem(${it.id},'carbs_g',this.value)"></div>
+        <div class="field"><label>Lipides (g)</label><input type="number" value="${it.fat_g}" oninput="updateItem(${it.id},'fat_g',this.value)"></div>
+      </div>
+      <div class="item-remove"><button onclick="removeItem(${it.id})">Supprimer cet aliment</button></div>
+    </div>`).join('');
+}
+
+function saveMeal(){
+  if(pendingItems.length===0) return;
+  const totals = pendingItems.reduce((acc,it)=>({
+    calories: acc.calories+it.calories, protein_g: acc.protein_g+it.protein_g,
+    carbs_g: acc.carbs_g+it.carbs_g, fat_g: acc.fat_g+it.fat_g
+  }), {calories:0,protein_g:0,carbs_g:0,fat_g:0});
+
+  const k = todayKey();
+  if(!data.meals[k]) data.meals[k] = [];
+  data.meals[k].push({
+    id: Date.now(), time: new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),
+    items: pendingItems, totals
+  });
+  saveLocalRaw();
+
+  pendingItems = [];
+  document.getElementById('itemsList').innerHTML = '';
+  document.getElementById('photoPreview').style.display = 'none';
+  document.getElementById('analyzeStatus').innerHTML = '';
+  document.getElementById('saveMealBtn').style.display = 'none';
+  document.getElementById('photoInput').value = '';
+  showToast('Repas enregistré');
+  renderMeals();
+}
+
+function renderMeals(){
+  const list = document.getElementById('mealsList');
+  const todays = data.meals[todayKey()] || [];
+  if(todays.length===0){ list.innerHTML = `<div class="empty"><div class="glyph">🍽️</div>Aucun repas enregistré aujourd'hui</div>`; return; }
+  list.innerHTML = todays.slice().reverse().map(m => `
+    <div class="meal-card">
+      <div class="top">
+        <div><div class="meta">${m.time} · ${m.items.length} aliment(s)</div></div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span class="cal">${Math.round(m.totals.calories)} kcal</span>
+          <button onclick="deleteMeal(${m.id})">✕</button>
+        </div>
+      </div>
+      <div class="macros">P ${Math.round(m.totals.protein_g)}g · G ${Math.round(m.totals.carbs_g)}g · L ${Math.round(m.totals.fat_g)}g</div>
+    </div>`).join('');
+}
+function deleteMeal(id){
+  const k = todayKey();
+  data.meals[k] = (data.meals[k]||[]).filter(m=>m.id!==id);
+  saveLocalRaw(); renderMeals(); renderGoals();
+}
+
+/* ---------- OBJECTIFS ---------- */
+function renderGoals(){
+  document.getElementById('goalCal').value = data.goals.cal;
+  document.getElementById('goalProt').value = data.goals.prot;
+  document.getElementById('goalCarb').value = data.goals.carb;
+  document.getElementById('goalFat').value = data.goals.fat;
+  document.getElementById('geminiKey').value = data.geminiKey;
+
+  const todays = data.meals[todayKey()] || [];
+  const consumed = todays.reduce((acc,m)=>({
+    cal: acc.cal+m.totals.calories, prot: acc.prot+m.totals.protein_g,
+    carb: acc.carb+m.totals.carbs_g, fat: acc.fat+m.totals.fat_g
+  }), {cal:0,prot:0,carb:0,fat:0});
+
+  const bars = [
+    ['Calories', consumed.cal, data.goals.cal, 'kcal', '#F2C14E'],
+    ['Protéines', consumed.prot, data.goals.prot, 'g', '#FF8FA3'],
+    ['Glucides', consumed.carb, data.goals.carb, 'g', '#FF6B4A'],
+    ['Lipides', consumed.fat, data.goals.fat, 'g', '#6FA8DC'],
+  ];
+  document.getElementById('goalBars').innerHTML = bars.map(([name,val,goal,unit,color])=>{
+    const pct = goal>0 ? Math.min(val/goal,1)*100 : 0;
+    const remaining = Math.round(goal-val);
+    return `<div class="goal-bar-wrap">
+      <div class="goal-bar-top"><span class="name">${name}</span><span class="val">${Math.round(val)} / ${goal} ${unit}${remaining>=0 ? ' · reste '+remaining : ' · dépassé de '+Math.abs(remaining)}</span></div>
+      <div class="goal-bar"><div class="fill" style="width:${pct}%; background:${color};"></div></div>
+    </div>`;
+  }).join('');
+}
+function onGoalsChange(){
+  data.goals.cal = parseInt(document.getElementById('goalCal').value,10) || 0;
+  data.goals.prot = parseInt(document.getElementById('goalProt').value,10) || 0;
+  data.goals.carb = parseInt(document.getElementById('goalCarb').value,10) || 0;
+  data.goals.fat = parseInt(document.getElementById('goalFat').value,10) || 0;
+  data.geminiKey = document.getElementById('geminiKey').value.trim();
+  saveLocalRaw(); renderGoals();
+}
+
+/* ---------- SEANCES ---------- */
+function renderDays(){
+  const el = document.getElementById('daysList');
+  el.innerHTML = DAYS.map(([key,label]) => `
+    <div class="day-row"><span class="dayname">${label}</span>
+      <input type="text" placeholder="Repos" value="${escapeHtml(data.workout.days[key]||'')}" oninput="setDay('${key}', this.value)"></div>`).join('');
+  document.getElementById('workoutTime').value = data.workout.time;
+}
+function setDay(key, val){ data.workout.days[key] = val; saveLocalRaw(); }
+function onWorkoutChange(){ data.workout.time = document.getElementById('workoutTime').value; saveLocalRaw(); }
+
+function renderRingTicks(){
+  const g = document.getElementById('ringTicks');
+  const cx=84, cy=84, rOuter=72, marks=24;
+  let svg = '';
+  for(let i=0;i<marks;i++){
+    const angle = (i/marks) * Math.PI * 2;
+    const long = i % 6 === 0;
+    const rInner = long ? rOuter-9 : rOuter-5;
+    const x1 = cx + rInner*Math.cos(angle), y1 = cy + rInner*Math.sin(angle);
+    const x2 = cx + (rOuter+2)*Math.cos(angle), y2 = cy + (rOuter+2)*Math.sin(angle);
+    svg += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"></line>`;
+  }
+  g.innerHTML = svg;
+}
+
+/* ---------- Init ---------- */
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+renderWaterUI(); renderNotes(); renderMeals(); renderGoals(); renderDays(); renderRingTicks();
+</script>
+</body>
+</html>
