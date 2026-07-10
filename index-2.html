@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#15162E">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Fluo</title>
+<style>
+  :root{
+    --bg:#160F24; --bg-soft:#211735; --card:#2B2044;
+    --aqua:#FF5D8F; --coral:#FFA23A; --gold:#FFD166; --azure:#5FB0FF; --rose:#B79FFF;
+    --green:#5FD37A; --orange:#FFA23A; --red:#FF5C5C;
+    --text:#F7F1FB; --text-dim:#9C90B5; --radius:20px;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; padding:0; height:100%;
+    background:
+      radial-gradient(circle at 8% 4%, rgba(255,93,143,0.10), transparent 40%),
+      radial-gradient(circle at 92% 0%, rgba(95,176,255,0.09), transparent 45%),
+      var(--bg);
+    color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    overscroll-behavior:none;
+  }
+  #app{ max-width:480px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; padding-bottom:86px; }
+  header{ padding:26px 20px 6px; }
+  header .eyebrow{ font-size:10.5px; letter-spacing:4px; text-transform:uppercase; color:var(--coral); font-weight:800; }
+  header h1{ font-size:29px; font-weight:800; letter-spacing:-0.8px; margin:5px 0 0; font-variant-numeric:tabular-nums; }
+  header h1::after{ content:''; display:block; width:34px; height:4px; background:var(--aqua); border-radius:4px; margin-top:10px; }
+  main{ flex:1; padding:12px 20px 20px; }
+  .view{ display:none; }
+  .view.active{ display:block; animation:fade .3s ease; }
+  @keyframes fade{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);} }
+  @keyframes popIn{ from{opacity:0; transform:scale(.94) translateY(6px);} to{opacity:1; transform:scale(1) translateY(0);} }
+
+  .card{ background:var(--card); border-radius:var(--radius); padding:18px 20px; margin-bottom:14px;
+    border:1px solid rgba(255,93,143,0.10); box-shadow:0 10px 24px rgba(0,0,0,0.22);
+    animation:popIn .35s ease backwards; }
+  .card h3{ margin:0 0 12px; font-size:11.5px; letter-spacing:2px; text-transform:uppercase; color:var(--coral); font-weight:800; }
+  .row{ display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.06); gap:10px; }
+  .row:last-child{ border-bottom:none; }
+  .row label{ font-size:14.5px; font-weight:600; }
+  .row .sub{ font-size:11.5px; color:var(--text-dim); margin-top:2px; }
+  input[type=time], input[type=text], input[type=number], input[type=password], select{
+    background:var(--bg-soft); border:1px solid rgba(255,93,143,0.25); color:var(--text);
+    border-radius:10px; padding:8px 10px; font-size:14px; font-family:inherit;
+  }
+  input[type=text]{ width:120px; }
+  .switch{ position:relative; width:46px; height:26px; flex-shrink:0; }
+  .switch input{ opacity:0; width:0; height:0; }
+  .slider{ position:absolute; inset:0; background:rgba(255,255,255,0.15); border-radius:100px; cursor:pointer; transition:.2s; }
+  .slider::before{ content:""; position:absolute; width:20px; height:20px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.2s; }
+  .switch input:checked + .slider{ background:var(--aqua); }
+  .switch input:checked + .slider::before{ transform:translateX(20px); }
+
+  /* GRID STATS (Accueil) */
+  .stat-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .stat-tile{ background:var(--bg-soft); border-radius:16px; padding:14px; }
+  .stat-tile .icon{ font-size:18px; }
+  .stat-tile .val{ font-size:19px; font-weight:800; margin-top:6px; }
+  .stat-tile .lbl{ font-size:10.5px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.5px; margin-top:2px; }
+
+  /* COACH */
+  .coach-card{ background:linear-gradient(135deg, rgba(255,93,143,0.14), rgba(95,176,255,0.08)); border:1px solid rgba(255,93,143,0.22); }
+  .coach-card .msg{ font-size:15px; line-height:1.5; font-weight:600; }
+  .coach-card .tag{ font-size:10.5px; color:var(--coral); text-transform:uppercase; letter-spacing:1.5px; font-weight:800; margin-bottom:8px; }
+
+  /* BADGES */
+  .badge-row{ display:flex; gap:10px; overflow-x:auto; padding-bottom:4px; }
+  .badge-chip{ flex-shrink:0; width:74px; text-align:center; padding:10px 6px; border-radius:16px; background:var(--bg-soft); opacity:0.35; }
+  .badge-chip.unlocked{ opacity:1; background:rgba(255,93,143,0.14); border:1px solid rgba(255,93,143,0.3); }
+  .badge-chip .emo{ font-size:22px; }
+  .badge-chip .name{ font-size:9.5px; color:var(--text-dim); margin-top:4px; line-height:1.3; }
+  .badge-chip.unlocked .name{ color:var(--text); font-weight:700; }
+
+  /* EAU */
+  .ring-wrap{ display:flex; flex-direction:column; align-items:center; margin:12px 0 18px; }
+  .ring{ position:relative; width:168px; height:168px; }
+  .ring svg{ transform:rotate(-90deg); width:100%; height:100%; }
+  .ring circle{ fill:none; stroke-width:12; }
+  .ring .track{ stroke:rgba(255,93,143,0.12); }
+  .ring .prog{ stroke:var(--aqua); stroke-linecap:round; transition:stroke-dashoffset .4s ease; }
+  .ring-center{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .ring-center .num{ font-size:30px; font-weight:800; }
+  .ring-center .cl{ font-size:12.5px; color:var(--aqua); font-weight:700; margin-top:2px; }
+  .ring-center .label{ font-size:10.5px; color:var(--text-dim); letter-spacing:1px; text-transform:uppercase; }
+  .btn-drink{ background:var(--aqua); color:#2B0F1D; border:none; font-weight:800; font-size:15px;
+    padding:15px 26px; border-radius:100px; width:100%; max-width:280px; margin:6px auto 0; display:block; transition:transform .1s ease; }
+  .btn-drink:active{ transform:scale(0.96); }
+  .status-line{ text-align:center; color:var(--text-dim); font-size:12.5px; margin-top:10px; }
+
+  /* NOTES */
+  .note-input{ background:var(--card); border-radius:var(--radius); padding:14px 16px; margin-bottom:16px; }
+  .note-input textarea{ width:100%; background:transparent; border:none; color:var(--text); font-family:inherit; font-size:15px; resize:none; min-height:46px; outline:none; }
+  .note-input textarea::placeholder{ color:var(--text-dim); }
+  .note-add-row{ display:flex; justify-content:flex-end; margin-top:6px; }
+  .note-add-row button, .btn-primary{ background:var(--aqua); color:#2B0F1D; border:none; font-weight:800; padding:10px 20px; border-radius:100px; font-size:14px; transition:transform .1s ease; }
+  .btn-primary:active, .note-add-row button:active{ transform:scale(0.97); }
+  .note{ background:var(--card); border-radius:16px; padding:14px 16px; margin-bottom:10px; display:flex; justify-content:space-between; gap:10px; align-items:flex-start; animation:popIn .3s ease backwards; }
+  .note p{ margin:0; font-size:14px; line-height:1.45; white-space:pre-wrap; word-break:break-word; }
+  .note .meta{ font-size:11px; color:var(--text-dim); margin-top:6px; }
+  .note button{ background:none; border:none; color:var(--text-dim); font-size:18px; padding:2px 4px; flex-shrink:0; }
+  .empty{ text-align:center; color:var(--text-dim); padding:36px 10px; font-size:13.5px; }
+  .empty .glyph{ font-size:32px; margin-bottom:10px; }
+
+  /* REPAS */
+  .btn-primary.full{ width:100%; margin-top:0; }
+  .btn-secondary{ background:transparent; color:var(--aqua); border:1px solid rgba(255,93,143,0.4); font-weight:700; font-size:13px; padding:10px 18px; border-radius:100px; width:100%; margin-top:8px; transition:transform .1s ease; }
+  .btn-secondary:active{ transform:scale(0.97); }
+  .photo-preview{ width:100%; border-radius:16px; margin:10px 0; max-height:220px; object-fit:cover; }
+  .item-card{ background:var(--bg-soft); border-radius:14px; padding:12px 14px; margin-bottom:8px; animation:popIn .3s ease backwards; }
+  .item-card .item-name{ font-weight:700; font-size:14px; margin-bottom:8px; }
+  .item-fields{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .field{ display:flex; flex-direction:column; gap:3px; }
+  .field label{ font-size:10.5px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.5px; }
+  .field input{ width:100%; }
+  .item-remove{ text-align:right; margin-top:6px; }
+  .item-remove button{ background:none; border:none; color:var(--coral); font-size:12px; font-weight:700; }
+  .meal-card{ background:var(--card); border-radius:16px; padding:14px 16px; margin-bottom:10px; animation:popIn .3s ease backwards; }
+  .meal-card .top{ display:flex; justify-content:space-between; align-items:flex-start; }
+  .meal-card .meta{ font-size:11px; color:var(--text-dim); margin-top:2px; }
+  .meal-card .macros{ font-size:12.5px; color:var(--text-dim); margin-top:8px; }
+  .meal-card .cal{ font-weight:800; color:var(--gold); font-size:15px; }
+  .meal-card button{ background:none; border:none; color:var(--text-dim); font-size:18px; }
+  .spinner{ display:inline-block; width:16px; height:16px; border:2px solid rgba(255,255,255,0.25); border-top-color:var(--aqua); border-radius:50%; animation:spin .7s linear infinite; vertical-align:-3px; margin-right:6px; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  .meal-type-strip{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:14px; }
+  .meal-type-tile{ background:var(--bg-soft); border-radius:14px; padding:10px 6px; text-align:center; }
+  .meal-type-tile .ico{ font-size:17px; }
+  .meal-type-tile .lbl{ font-size:9.5px; color:var(--text-dim); margin-top:4px; }
+  .meal-type-tile .check{ font-size:13px; margin-top:3px; }
+  .meal-type-tile.done{ background:rgba(95,211,122,0.14); border:1px solid rgba(95,211,122,0.3); }
+  .macro-mini-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; text-align:center; }
+  .macro-mini{ background:var(--bg-soft); border-radius:12px; padding:10px 4px; }
+  .macro-mini .v{ font-weight:800; font-size:14.5px; }
+  .macro-mini .l{ font-size:9.5px; color:var(--text-dim); margin-top:2px; }
+  select.type-select{ width:100%; margin-bottom:10px; }
+  .confirm-banner{ background:rgba(95,211,122,0.14); border:1px solid rgba(95,211,122,0.3); border-radius:14px; padding:10px 14px; font-size:13px; margin-bottom:10px; }
+
+  /* OBJECTIFS */
+  .goal-bar-wrap{ margin-bottom:14px; }
+  .goal-bar-top{ display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px; }
+  .goal-bar-top .name{ font-weight:700; }
+  .goal-bar-top .val{ color:var(--text-dim); }
+  .goal-bar{ height:8px; border-radius:100px; background:rgba(255,255,255,0.08); overflow:hidden; }
+  .goal-bar .fill{ height:100%; border-radius:100px; transition:width .3s ease, background .3s ease; }
+  .remaining-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:6px; }
+  .remaining-tile{ background:var(--bg-soft); border-radius:14px; padding:12px; text-align:center; }
+  .remaining-tile .v{ font-size:17px; font-weight:800; }
+  .remaining-tile .l{ font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.5px; margin-top:2px; }
+
+  /* SEANCES */
+  .day-row{ display:flex; align-items:center; justify-content:space-between; padding:9px 0; border-bottom:1px solid rgba(255,255,255,0.06); gap:10px; }
+  .day-row:last-child{ border-bottom:none; }
+  .day-row .dayname{ font-size:13.5px; font-weight:700; width:40px; flex-shrink:0; color:var(--text-dim); }
+  .exercise-editor{ background:var(--bg-soft); border-radius:14px; padding:10px 12px; margin-top:8px; }
+  .exercise-row-edit{ display:flex; gap:6px; align-items:center; margin-bottom:6px; }
+  .exercise-row-edit input[type=text]{ flex:1; width:auto; }
+  .exercise-row-edit input[type=number]{ width:56px; }
+  .exercise-row-edit button{ background:none; border:none; color:var(--coral); font-size:16px; }
+  .add-exo-btn{ background:none; border:1px dashed rgba(255,93,143,0.4); color:var(--aqua); font-size:12.5px; font-weight:700; padding:8px; border-radius:10px; width:100%; margin-top:4px; }
+  .today-session-card{ background:linear-gradient(135deg, rgba(255,93,143,0.14), rgba(95,176,255,0.08)); border:1px solid rgba(255,93,143,0.22); }
+  .exo-row{ display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.07); gap:10px; }
+  .exo-row:last-child{ border-bottom:none; }
+  .exo-row .exo-name{ font-size:14px; font-weight:700; }
+  .exo-row .exo-sub{ font-size:11px; color:var(--text-dim); }
+  .set-btn{ background:var(--aqua); color:#2B0F1D; border:none; font-weight:800; font-size:13px; width:34px; height:34px; border-radius:50%; flex-shrink:0; }
+  .rest-card{ text-align:center; padding:20px 10px; }
+  .rest-card .glyph{ font-size:30px; }
+
+  /* STATS */
+  .chart-wrap{ margin-bottom:8px; }
+  .chart-title{ font-size:12.5px; font-weight:700; color:var(--text-dim); margin-bottom:8px; }
+  .bar-chart{ display:flex; align-items:flex-end; gap:6px; height:90px; }
+  .bar-chart .bar{ flex:1; background:var(--aqua); border-radius:6px 6px 2px 2px; min-height:3px; position:relative; }
+  .bar-chart .bar-lbl{ text-align:center; font-size:9px; color:var(--text-dim); margin-top:4px; }
+  .bar-chart-wrap{ display:flex; flex-direction:column; }
+  .bar-chart-cols{ display:flex; gap:6px; }
+  .bar-chart-col{ flex:1; display:flex; flex-direction:column; align-items:center; }
+
+  .soon{ text-align:center; padding:50px 20px; }
+  .soon .glyph{ font-size:38px; }
+  .soon h3{ margin:14px 0 6px; font-size:17px; }
+  .soon p{ color:var(--text-dim); font-size:13.5px; line-height:1.5; }
+
+  .hint{ font-size:11.5px; color:var(--text-dim); line-height:1.5; margin:6px 0 0; }
+  .toast{ position:fixed; bottom:98px; left:50%; transform:translateX(-50%) translateY(10px); background:var(--card); border:1px solid rgba(255,93,143,0.4); padding:11px 20px; border-radius:100px; font-size:13px; font-weight:600; opacity:0; pointer-events:none; transition:opacity .25s ease, transform .25s ease; z-index:50; max-width:88%; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.35); }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  nav{ position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:480px;
+    background:rgba(21,22,46,0.94); backdrop-filter:blur(14px); border-top:1px solid rgba(255,93,143,0.14);
+    display:flex; gap:2px; padding:8px 4px calc(8px + env(safe-area-inset-bottom)); overflow-x:auto; }
+  nav button{ flex:1; background:none; border:none; color:var(--text-dim); display:flex; flex-direction:column; align-items:center; gap:3px; padding:6px 2px; border-radius:14px; font-size:9px; font-weight:700; white-space:nowrap; min-width:52px; transition:background .15s ease, color .15s ease; }
+  nav button .ico{ font-size:17px; }
+  nav button.active{ color:#2B0F1D; background:var(--aqua); }
+  ::-webkit-scrollbar{ display:none; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="eyebrow">Fluo · local & IA repas</div>
+    <h1 id="pageTitle">Accueil</h1>
+  </header>
+
+  <main>
+    <!-- ACCUEIL -->
+    <section class="view active" id="view-home">
+      <div class="card coach-card" id="coachCard">
+        <div class="tag">Coach du jour</div>
+        <div class="msg" id="coachMsg">Chargement…</div>
+      </div>
+
+      <div class="card">
+        <h3>Aujourd'hui</h3>
+        <div class="stat-grid">
+          <div class="stat-tile"><div class="icon">🔥</div><div class="val" id="homeCal">0</div><div class="lbl">Calories</div></div>
+          <div class="stat-tile"><div class="icon">🥩</div><div class="val" id="homeProt">0 g</div><div class="lbl">Protéines</div></div>
+          <div class="stat-tile"><div class="icon">🍞</div><div class="val" id="homeCarb">0 g</div><div class="lbl">Glucides</div></div>
+          <div class="stat-tile"><div class="icon">🥑</div><div class="val" id="homeFat">0 g</div><div class="lbl">Lipides</div></div>
+          <div class="stat-tile"><div class="icon">💧</div><div class="val" id="homeWater">0 cl</div><div class="lbl">Eau bue</div></div>
+          <div class="stat-tile"><div class="icon">🏋️</div><div class="val" id="homeSession">—</div><div class="lbl">Prochaine séance</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Poids</h3>
+        <div class="row">
+          <div><label id="homeWeightVal">— kg</label><div class="sub" id="homeWeightDelta">Aucune donnée</div></div>
+          <input type="number" id="newWeightInput" placeholder="kg" style="width:80px" step="0.1">
+        </div>
+        <button class="btn-primary full" style="margin-top:8px;" onclick="logWeight()">Enregistrer mon poids</button>
+      </div>
+
+      <div class="card">
+        <h3>Succès</h3>
+        <div class="badge-row" id="badgeRow"></div>
+      </div>
+    </section>
+
+    <!-- REPAS -->
+    <section class="view" id="view-meals">
+      <div class="card">
+        <h3>Repas du jour</h3>
+        <div class="meal-type-strip" id="mealTypeStrip"></div>
+        <div class="macro-mini-grid" id="mealMacroMini"></div>
+      </div>
+
+      <div class="card" id="captureCard">
+        <h3>Nouveau repas</h3>
+        <select class="type-select" id="mealTypeSelect">
+          <option value="petit-dejeuner">🌅 Petit-déjeuner</option>
+          <option value="dejeuner">☀️ Déjeuner</option>
+          <option value="gouter">🍎 Goûter</option>
+          <option value="diner">🌙 Dîner</option>
+        </select>
+        <input type="file" accept="image/*" capture="environment" id="photoInput" style="display:none" onchange="onPhotoSelected(event)">
+        <button class="btn-primary full" onclick="document.getElementById('photoInput').click()">📷 Prendre une photo</button>
+        <button class="btn-secondary" onclick="addManualItem()">➕ Ajouter un aliment manuellement</button>
+        <img id="photoPreview" class="photo-preview" style="display:none">
+        <div id="analyzeStatus" class="hint"></div>
+        <div id="confirmBanner" class="confirm-banner" style="display:none;">✅ Aliments détectés — vérifie et corrige si besoin avant d'ajouter au journal.</div>
+        <div id="itemsList"></div>
+        <div id="mealActionRow" style="display:none; gap:8px; margin-top:10px;">
+          <button class="btn-secondary" style="margin-top:0;" onclick="showToast('Corrige directement les champs ci-dessus 👆')">✏️ Modifier</button>
+          <button class="btn-primary full" style="margin-top:8px;" onclick="saveMeal()">✅ Ajouter au journal</button>
+        </div>
+      </div>
+      <h3 style="font-size:12.5px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-dim); margin:18px 4px 10px;">Historique du jour</h3>
+      <div id="mealsList"></div>
+    </section>
+
+    <!-- EAU -->
+    <section class="view" id="view-water">
+      <div class="ring-wrap">
+        <div class="ring">
+          <svg viewBox="0 0 168 168">
+            <circle class="track" cx="84" cy="84" r="72"></circle>
+            <g id="ringTicks" stroke="rgba(255,93,143,0.35)" stroke-width="2"></g>
+            <circle class="prog" id="ringProg" cx="84" cy="84" r="72" stroke-dasharray="452" stroke-dashoffset="452"></circle>
+          </svg>
+          <div class="ring-center">
+            <div class="num" id="glassCount">0</div>
+            <div class="cl" id="clCount">0 cl</div>
+            <div class="label">verres</div>
+          </div>
+        </div>
+        <button class="btn-drink" onclick="logDrink()">J'ai bu un verre</button>
+        <div class="status-line" id="statusLine">Configure tes horaires ci-dessous</div>
+      </div>
+
+      <div class="card">
+        <h3>Bilan du jour</h3>
+        <div class="remaining-grid">
+          <div class="remaining-tile"><div class="v" id="waterGlasses">0</div><div class="l">Verres bus</div></div>
+          <div class="remaining-tile"><div class="v" id="waterDrunk">0 cl</div><div class="l">Bu aujourd'hui</div></div>
+          <div class="remaining-tile"><div class="v" id="waterRemaining">0 cl</div><div class="l">Restant</div></div>
+          <div class="remaining-tile"><div class="v" id="waterStreak">0 j</div><div class="l">Meilleure série</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Rappels</h3>
+        <div class="row"><div><label>Actifs</label><div class="sub">Envoyés par le serveur (app fermée OK)</div></div>
+          <label class="switch"><input type="checkbox" id="toggleActive" onchange="onWaterChange()"><span class="slider"></span></label></div>
+        <div class="row"><label>Début</label><input type="time" id="startTime" value="10:00" onchange="onWaterChange()"></div>
+        <div class="row"><label>Fin</label><input type="time" id="endTime" value="20:00" onchange="onWaterChange()"></div>
+        <div class="row"><label>Intervalle</label>
+          <select id="interval" onchange="onWaterChange()">
+            <option value="15">15 min</option><option value="30" selected>30 min</option><option value="60">60 min</option>
+          </select></div>
+        <div class="row"><label>Objectif quotidien</label>
+          <input type="number" id="literGoal" value="2" min="0.5" max="10" step="0.1" style="width:64px" onchange="onWaterChange()"> L</div>
+        <div class="row"><label>Volume / verre</label>
+          <input type="number" id="glassVolume" value="25" min="1" max="100" style="width:64px" onchange="onWaterChange()"> cl</div>
+      </div>
+    </section>
+
+    <!-- SALLE -->
+    <section class="view" id="view-notes">
+      <div class="note-input">
+        <textarea id="noteText" placeholder="Note pour la salle (record, ressenti, réglage machine…)" rows="2"></textarea>
+        <div class="note-add-row"><button onclick="addNote()">Ajouter</button></div>
+      </div>
+      <div id="notesList"></div>
+    </section>
+
+    <!-- SEANCES -->
+    <section class="view" id="view-workout">
+      <div id="todaySessionZone"></div>
+
+      <div class="card">
+        <h3>Planning de la semaine</h3>
+        <div id="daysList"></div>
+      </div>
+      <div class="card">
+        <h3>Rappel</h3>
+        <div class="row"><label>Heure du rappel</label><input type="time" id="workoutTime" value="18:00" onchange="onWorkoutChange()"></div>
+        <div class="sub" style="margin-top:6px;">Envoyé les jours où une séance est définie, chaque semaine.</div>
+      </div>
+    </section>
+
+    <!-- OBJECTIFS -->
+    <section class="view" id="view-goals">
+      <div class="card">
+        <h3>Aujourd'hui</h3>
+        <div id="goalBars"></div>
+        <div class="remaining-grid" id="remainingGrid"></div>
+      </div>
+      <div class="card">
+        <h3>Objectifs quotidiens</h3>
+        <div class="row"><label>Calories</label><input type="number" id="goalCal" onchange="onGoalsChange()"></div>
+        <div class="row"><label>Protéines (g)</label><input type="number" id="goalProt" onchange="onGoalsChange()"></div>
+        <div class="row"><label>Glucides (g)</label><input type="number" id="goalCarb" onchange="onGoalsChange()"></div>
+        <div class="row"><label>Lipides (g)</label><input type="number" id="goalFat" onchange="onGoalsChange()"></div>
+      </div>
+      <div class="card">
+        <h3>Clé API Gemini (pour l'analyse photo)</h3>
+        <input type="password" id="geminiKey" placeholder="Colle ta clé ici" style="width:100%;" onchange="onGoalsChange()">
+        <p class="hint">Gratuite sur aistudio.google.com avec ton compte Google. Elle reste uniquement sur ton téléphone.</p>
+      </div>
+      <div class="card">
+        <h3>Notifications app fermée</h3>
+        <div class="row">
+          <label>Sujet ntfy</label>
+          <input type="text" id="ntfyTopic" placeholder="ex: fluo-a8f3k2" oninput="onServerFieldChange()">
+        </div>
+        <div class="row" style="flex-direction:column; align-items:stretch;">
+          <label style="margin-bottom:6px;">URL du Worker</label>
+          <input type="text" id="workerUrl" placeholder="https://fluo-notifs.toi.workers.dev" style="width:100%;" oninput="onServerFieldChange()">
+        </div>
+        <button class="btn-secondary" onclick="testNotif()">Tester la notif</button>
+        <button class="btn-primary full" style="margin-top:8px;" onclick="sendToServer()">Envoyer au serveur</button>
+        <p class="hint" id="serverStatus"></p>
+      </div>
+    </section>
+
+    <!-- STATS -->
+    <section class="view" id="view-stats">
+      <div class="card">
+        <h3>Poids (30 derniers jours)</h3>
+        <div id="weightChart"></div>
+      </div>
+      <div class="card">
+        <h3>Calories / jour (7 derniers jours)</h3>
+        <div id="calChart"></div>
+      </div>
+      <div class="card">
+        <h3>Protéines / jour (7 derniers jours)</h3>
+        <div id="protChart"></div>
+      </div>
+      <div class="card">
+        <h3>Eau (litres, 7 derniers jours)</h3>
+        <div id="waterChart"></div>
+      </div>
+      <div class="card">
+        <h3>Séances réalisées</h3>
+        <div class="stat-grid">
+          <div class="stat-tile"><div class="icon">💪</div><div class="val" id="statSessionsTotal">0</div><div class="lbl">Total</div></div>
+          <div class="stat-tile"><div class="icon">📅</div><div class="val" id="statSessionsWeek">0</div><div class="lbl">Cette semaine</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Tous les succès</h3>
+        <div id="badgeGrid" class="badge-row" style="flex-wrap:wrap; overflow:visible;"></div>
+      </div>
+    </section>
+  </main>
+
+  <nav>
+    <button class="active" data-view="home" onclick="switchView('home')"><span class="ico">🏠</span>Accueil</button>
+    <button data-view="meals" onclick="switchView('meals')"><span class="ico">🍽️</span>Repas</button>
+    <button data-view="water" onclick="switchView('water')"><span class="ico">💧</span>Eau</button>
+    <button data-view="notes" onclick="switchView('notes')"><span class="ico">📝</span>Salle</button>
+    <button data-view="workout" onclick="switchView('workout')"><span class="ico">🏋️</span>Séances</button>
+    <button data-view="goals" onclick="switchView('goals')"><span class="ico">🎯</span>Objectifs</button>
+    <button data-view="stats" onclick="switchView('stats')"><span class="ico">📊</span>Stats</button>
+  </nav>
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+const STORE_KEY = 'fluo_data_v4';
+const DAYS = [['Mon','Lun'],['Tue','Mar'],['Wed','Mer'],['Thu','Jeu'],['Fri','Ven'],['Sat','Sam'],['Sun','Dim']];
+const MEAL_TYPES = [['petit-dejeuner','🌅','P-déj'],['dejeuner','☀️','Déj'],['gouter','🍎','Goûter'],['diner','🌙','Dîner']];
+const BADGES = [
+  { id:'first_session', emo:'🥇', name:'1ère séance' },
+  { id:'sessions_10', emo:'🎖️', name:'10 séances' },
+  { id:'sessions_50', emo:'💪', name:'50 séances' },
+  { id:'streak_7', emo:'🔥', name:'7j d\'affilée' },
+  { id:'hydration_30', emo:'🌊', name:'30j d\'hydratation' },
+  { id:'protein_goal', emo:'🥩', name:'Objectif prot.' },
+  { id:'perfect_day', emo:'🌟', name:'Journée parfaite' },
+  { id:'weight_minus5', emo:'📉', name:'-5 kg' },
+  { id:'first_meal', emo:'🍽️', name:'1er repas' },
+  { id:'meals_50', emo:'🍱', name:'50 repas' },
+  { id:'notes_10', emo:'📝', name:'10 notes' },
+  { id:'early_bird', emo:'🌅', name:'5 p-déj loggés' },
+];
+
+function loadData(){
+  try{ const raw = localStorage.getItem(STORE_KEY); if(raw) return JSON.parse(raw); }catch(e){}
+  return {
+    water:{ active:false, start:"10:00", end:"20:00", interval:30, glassVolume:25, literGoal:2 },
+    workout:{ time:"18:00", days:{ Mon:null,Tue:null,Wed:null,Thu:null,Fri:null,Sat:null,Sun:null } },
+    notes:[], glassLog:{}, meals:{},
+    goals:{ cal:2200, prot:150, carb:220, fat:70 },
+    geminiKey:'', ntfyTopic:'', workerUrl:'',
+    weightLog:[], sessionLog:[], todaySessionProgress:{ date:'', done:{} },
+    badgesEarned:[]
+  };
+}
+function saveLocalRaw(){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(data)); }
+  catch(e){ console.warn('Sauvegarde locale impossible ici — ouvre le fichier dans ton navigateur.'); }
+}
+let data = loadData();
+data.ntfyTopic = data.ntfyTopic || '';
+data.workerUrl = data.workerUrl || '';
+data.weightLog = data.weightLog || [];
+data.sessionLog = data.sessionLog || [];
+data.badgesEarned = data.badgesEarned || [];
+if(!data.water.literGoal){ data.water.literGoal = data.water.glassGoal ? (data.water.glassGoal*data.water.glassVolume)/100 : 2; }
+delete data.water.glassGoal;
+if(!data.todaySessionProgress) data.todaySessionProgress = { date:'', done:{} };
+// Migration : anciens jours en simple texte -> objet {name, exercises}
+Object.keys(data.workout.days).forEach(k=>{
+  const v = data.workout.days[k];
+  if(typeof v === 'string'){ data.workout.days[k] = v.trim() ? { name:v.trim(), exercises:[] } : null; }
+});
+saveLocalRaw();
+
+function todayKey(){ const d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+function isoToday(){ const d=new Date(); const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(window._toastT); window._toastT=setTimeout(()=>t.classList.remove('show'), 2600); }
+
+const titles = { home:'Accueil', water:'Hydratation', notes:'Notes salle', meals:'Repas', goals:'Objectifs', workout:'Séances', stats:'Statistiques' };
+function switchView(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active', b.dataset.view===name));
+  document.getElementById('pageTitle').textContent = titles[name];
+  if(name==='goals') renderGoals();
+  if(name==='home') renderHome();
+  if(name==='workout') renderWorkout();
+  if(name==='meals') renderMealSummary();
+  if(name==='stats') renderStats();
+}
+
+/* ---------- Totaux du jour (utilisés partout) ---------- */
+function todayTotals(){
+  const todays = data.meals[todayKey()] || [];
+  return todays.reduce((acc,m)=>({
+    cal: acc.cal+m.totals.calories, prot: acc.prot+m.totals.protein_g,
+    carb: acc.carb+m.totals.carbs_g, fat: acc.fat+m.totals.fat_g
+  }), {cal:0,prot:0,carb:0,fat:0});
+}
+function glassesToday(){ return data.glassLog[todayKey()] || 0; }
+function clToday(){ return glassesToday() * data.water.glassVolume; }
+
+/* ---------- ACCUEIL ---------- */
+function findNextSession(){
+  const weekdayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const labels = {Mon:'Lundi',Tue:'Mardi',Wed:'Mercredi',Thu:'Jeudi',Fri:'Vendredi',Sat:'Samedi',Sun:'Dimanche'};
+  const now = new Date();
+  for(let i=0;i<7;i++){
+    const d = new Date(now); d.setDate(now.getDate()+i);
+    const key = weekdayNames[d.getDay()];
+    const session = data.workout.days[key];
+    if(session && session.name && session.name.trim()!==''){
+      return (i===0 ? "Aujourd'hui" : (i===1 ? "Demain" : labels[key])) + ' · ' + session.name;
+    }
+  }
+  return 'Aucune prévue';
+}
+function renderHome(){
+  const t = todayTotals();
+  document.getElementById('homeCal').textContent = Math.round(t.cal);
+  document.getElementById('homeProt').textContent = Math.round(t.prot)+' g';
+  document.getElementById('homeCarb').textContent = Math.round(t.carb)+' g';
+  document.getElementById('homeFat').textContent = Math.round(t.fat)+' g';
+  document.getElementById('homeWater').textContent = clToday()+' cl';
+  document.getElementById('homeSession').textContent = findNextSession();
+
+  const wl = data.weightLog.slice().sort((a,b)=>a.date.localeCompare(b.date));
+  if(wl.length){
+    const last = wl[wl.length-1];
+    document.getElementById('homeWeightVal').textContent = last.weight + ' kg';
+    if(wl.length>1){
+      const prev = wl[wl.length-2];
+      const diff = (last.weight - prev.weight);
+      const sign = diff>0?'+':'';
+      document.getElementById('homeWeightDelta').textContent = `${sign}${diff.toFixed(1)} kg depuis la dernière pesée`;
+    } else {
+      document.getElementById('homeWeightDelta').textContent = 'Première pesée enregistrée';
+    }
+  } else {
+    document.getElementById('homeWeightVal').textContent = '— kg';
+    document.getElementById('homeWeightDelta').textContent = 'Aucune donnée';
+  }
+
+  renderCoach(t);
+  renderBadges();
+}
+function renderCoach(t){
+  t = t || todayTotals();
+  const msgs = [];
+  const weekdayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const todaySession = data.workout.days[weekdayNames[new Date().getDay()]];
+  if(todaySession && todaySession.name){ msgs.push(`Séance prévue aujourd'hui : ${todaySession.name} 💪`); }
+  const protRemaining = data.goals.prot - t.prot;
+  if(protRemaining > 15) msgs.push(`Il te reste ${Math.round(protRemaining)} g de protéines à atteindre.`);
+  else if(protRemaining <= 0) msgs.push(`Objectif protéines atteint, bravo ! 🎯`);
+  const clRemaining = data.water.literGoal*100 - clToday();
+  if(clRemaining > 0) msgs.push(`Encore ${clRemaining} cl d'eau à boire pour atteindre ton objectif.`);
+  const calRemaining = data.goals.cal - t.cal;
+  if(calRemaining > 0 && msgs.length < 2) msgs.push(`Il te reste ${Math.round(calRemaining)} kcal aujourd'hui.`);
+  if(msgs.length===0) msgs.push("Tout est sous contrôle aujourd'hui, continue comme ça ! ✨");
+  document.getElementById('coachMsg').textContent = msgs.slice(0,2).join(' ');
+}
+function logWeight(){
+  const v = parseFloat(document.getElementById('newWeightInput').value);
+  if(!v || v<=0) return;
+  const prevList = data.weightLog.slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const prevWeight = prevList.length ? prevList[prevList.length-1].weight : null;
+  data.weightLog.push({ date: isoToday(), weight: v });
+  saveLocalRaw();
+  document.getElementById('newWeightInput').value = '';
+  showToast('Poids enregistré 📉');
+  if(prevWeight!==null){
+    const first = prevList[0].weight;
+    if(first - v >= 5) checkAndUnlock('weight_minus5', 'Nouveau record : -5 kg ! 🏆');
+  }
+  renderHome();
+}
+
+/* ---------- BADGES ---------- */
+function computeStreak(){
+  let streak = 0, best = 0;
+  const d = new Date();
+  for(let i=0;i<60;i++){
+    const cur = new Date(d); cur.setDate(d.getDate()-i);
+    const key = cur.getFullYear()+'-'+(cur.getMonth()+1)+'-'+cur.getDate();
+    const cl = (data.glassLog[key]||0) * data.water.glassVolume;
+    if(cl >= data.water.literGoal*100){ streak++; best=Math.max(best,streak); }
+    else { streak = 0; }
+  }
+  return best;
+}
+function countTotalMeals(){
+  return Object.values(data.meals).reduce((s,arr)=>s+arr.length, 0);
+}
+function countBreakfasts(){
+  return Object.values(data.meals).reduce((s,arr)=>s+arr.filter(m=>m.type==='petit-dejeuner').length, 0);
+}
+function isPerfectDay(t){
+  const within = (val,goal)=> goal>0 && val >= goal*0.8 && val <= goal*1.15;
+  return within(t.cal,data.goals.cal) && within(t.prot,data.goals.prot) && within(t.carb,data.goals.carb) && within(t.fat,data.goals.fat);
+}
+function evaluateBadges(){
+  const unlocked = new Set(data.badgesEarned);
+  if(data.sessionLog.length >= 1) unlocked.add('first_session');
+  if(data.sessionLog.length >= 10) unlocked.add('sessions_10');
+  if(data.sessionLog.length >= 50) unlocked.add('sessions_50');
+  if(computeStreak() >= 7) unlocked.add('streak_7');
+  if(computeStreak() >= 30) unlocked.add('hydration_30');
+  const t = todayTotals();
+  if(t.prot >= data.goals.prot && data.goals.prot>0) unlocked.add('protein_goal');
+  if(isPerfectDay(t)) unlocked.add('perfect_day');
+  const wl = data.weightLog.slice().sort((a,b)=>a.date.localeCompare(b.date));
+  if(wl.length>1 && (wl[0].weight - wl[wl.length-1].weight) >= 5) unlocked.add('weight_minus5');
+  if(countTotalMeals() >= 1) unlocked.add('first_meal');
+  if(countTotalMeals() >= 50) unlocked.add('meals_50');
+  if(data.notes.length >= 10) unlocked.add('notes_10');
+  if(countBreakfasts() >= 5) unlocked.add('early_bird');
+  data.badgesEarned = Array.from(unlocked);
+  saveLocalRaw();
+  return data.badgesEarned;
+}
+function checkAndUnlock(id, toastMsg){
+  if(!data.badgesEarned.includes(id)){
+    data.badgesEarned.push(id);
+    saveLocalRaw();
+    showToast(toastMsg || 'Nouveau succès débloqué ! 🏆');
+  }
+}
+function renderBadgeList(containerId){
+  const unlocked = evaluateBadges();
+  const el = document.getElementById(containerId);
+  el.innerHTML = BADGES.map(b => `
+    <div class="badge-chip ${unlocked.includes(b.id)?'unlocked':''}">
+      <div class="emo">${b.emo}</div>
+      <div class="name">${b.name}</div>
+    </div>`).join('');
+}
+function renderBadges(){ renderBadgeList('badgeRow'); }
+
+/* ---------- EAU ---------- */
+function renderWaterUI(){
+  document.getElementById('toggleActive').checked = data.water.active;
+  document.getElementById('startTime').value = data.water.start;
+  document.getElementById('endTime').value = data.water.end;
+  document.getElementById('interval').value = String(data.water.interval);
+  document.getElementById('glassVolume').value = data.water.glassVolume;
+  document.getElementById('literGoal').value = data.water.literGoal;
+
+  const count = glassesToday();
+  const goalCl = data.water.literGoal * 100;
+  document.getElementById('glassCount').textContent = count;
+  document.getElementById('clCount').textContent = clToday() + ' cl';
+  const circumference = 452;
+  const pct = Math.min(clToday()/goalCl, 1);
+  document.getElementById('ringProg').style.strokeDashoffset = circumference - pct*circumference;
+  document.getElementById('statusLine').textContent = data.water.active
+    ? `Rappel toutes les ${data.water.interval} min entre ${data.water.start} et ${data.water.end}`
+    : "Rappels désactivés";
+
+  document.getElementById('waterGlasses').textContent = count;
+  document.getElementById('waterDrunk').textContent = clToday()+' cl';
+  const remainingCl = Math.max(0, goalCl - clToday());
+  document.getElementById('waterRemaining').textContent = (remainingCl/100).toFixed(1)+' L';
+  document.getElementById('waterStreak').textContent = computeStreak()+' j';
+}
+function onWaterChange(){
+  data.water.active = document.getElementById('toggleActive').checked;
+  data.water.start = document.getElementById('startTime').value;
+  data.water.end = document.getElementById('endTime').value;
+  data.water.interval = parseInt(document.getElementById('interval').value, 10);
+  data.water.glassVolume = parseInt(document.getElementById('glassVolume').value, 10) || 25;
+  data.water.literGoal = parseFloat(document.getElementById('literGoal').value) || 2;
+  saveLocalRaw(); renderWaterUI();
+  if(data.water.active && typeof Notification!=='undefined' && Notification.permission==='default') Notification.requestPermission();
+  syncToServer();
+}
+function logDrink(){
+  const k=todayKey(); data.glassLog[k]=(data.glassLog[k]||0)+1; saveLocalRaw(); renderWaterUI();
+  if(clToday() >= data.water.literGoal*100) showToast("Objectif eau atteint aujourd'hui 💧🎉");
+  syncToServer();
+}
+function notify(title, body){
+  if(typeof Notification!=='undefined' && Notification.permission==='granted'){
+    try{ new Notification(title,{body}); }catch(e){}
+  }
+}
+let lastWaterFire = null, lastWorkoutFire = null;
+function checkReminders(){
+  const now = new Date();
+  const nowMin = now.getHours()*60+now.getMinutes();
+  if(data.water.active){
+    const [sh,sm]=data.water.start.split(':').map(Number), [eh,em]=data.water.end.split(':').map(Number);
+    const startMin=sh*60+sm, endMin=eh*60+em;
+    if(nowMin>=startMin && nowMin<=endMin && (nowMin-startMin)%data.water.interval===0){
+      const fireKey = todayKey()+'-'+nowMin;
+      if(lastWaterFire!==fireKey){ lastWaterFire=fireKey; notify('💧 Bois de l\'eau', "Petit rappel Fluo : un verre d'eau ?"); }
+    }
+  }
+  const weekdayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const wd = weekdayNames[now.getDay()];
+  const session = data.workout.days[wd];
+  if(session && session.name && session.name.trim()!==''){
+    const [th,tm]=data.workout.time.split(':').map(Number);
+    const targetMin = th*60+tm;
+    if(nowMin===targetMin){
+      const fireKey = todayKey();
+      if(lastWorkoutFire!==fireKey){ lastWorkoutFire=fireKey; notify('🏋️ Séance du jour', `C'est aujourd'hui : ${session.name}`); }
+    }
+  }
+}
+setInterval(checkReminders, 20000);
+
+/* ---------- NOTES SALLE ---------- */
+function renderNotes(){
+  const list = document.getElementById('notesList');
+  if(data.notes.length===0){ list.innerHTML = `<div class="empty"><div class="glyph">🗒️</div>Aucune note pour l'instant</div>`; return; }
+  list.innerHTML = data.notes.slice().reverse().map(n => `
+    <div class="note"><div><p>${escapeHtml(n.text)}</p><div class="meta">${n.date}</div></div>
+    <button onclick="deleteNote(${n.id})">✕</button></div>`).join('');
+}
+function addNote(){
+  const ta=document.getElementById('noteText'); const text=ta.value.trim(); if(!text) return;
+  data.notes.push({ id:Date.now(), text, date:new Date().toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) });
+  ta.value=''; saveLocalRaw(); renderNotes();
+}
+function deleteNote(id){ data.notes = data.notes.filter(n=>n.id!==id); saveLocalRaw(); renderNotes(); }
+
+/* ---------- REPAS ---------- */
+let pendingItems = [];
+
+function renderMealSummary(){
+  const todays = data.meals[todayKey()] || [];
+  const el = document.getElementById('mealTypeStrip');
+  el.innerHTML = MEAL_TYPES.map(([id,ico,lbl])=>{
+    const done = todays.some(m=>m.type===id);
+    return `<div class="meal-type-tile ${done?'done':''}">
+      <div class="ico">${ico}</div><div class="lbl">${lbl}</div>
+      <div class="check">${done?'✅':'❌'}</div>
+    </div>`;
+  }).join('');
+
+  const t = todayTotals();
+  document.getElementById('mealMacroMini').innerHTML = `
+    <div class="macro-mini"><div class="v">${Math.round(t.cal)}</div><div class="l">kcal</div></div>
+    <div class="macro-mini"><div class="v">${Math.round(t.prot)}g</div><div class="l">Prot</div></div>
+    <div class="macro-mini"><div class="v">${Math.round(t.carb)}g</div><div class="l">Gluc</div></div>
+    <div class="macro-mini"><div class="v">${Math.round(t.fat)}g</div><div class="l">Lip</div></div>
+  `;
+}
+
+function guessMealType(){
+  const h = new Date().getHours();
+  if(h < 11) return 'petit-dejeuner';
+  if(h < 15) return 'dejeuner';
+  if(h < 19) return 'gouter';
+  return 'diner';
+}
+
+function onPhotoSelected(evt){
+  const file = evt.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const dataUrl = reader.result;
+    document.getElementById('photoPreview').src = dataUrl;
+    document.getElementById('photoPreview').style.display = 'block';
+    await analyzePhoto(dataUrl, file.type);
+  };
+  reader.readAsDataURL(file);
+}
+
+async function analyzePhoto(dataUrl, mimeType){
+  const statusEl = document.getElementById('analyzeStatus');
+  document.getElementById('confirmBanner').style.display = 'none';
+  if(!data.geminiKey){
+    statusEl.innerHTML = "⚠️ Ajoute ta clé Gemini dans l'onglet Objectifs pour activer l'analyse.";
+    return;
+  }
+  statusEl.innerHTML = '<span class="spinner"></span>Analyse en cours…';
+  const base64 = dataUrl.split(',')[1];
+  const prompt = "Analyse cette photo de repas. Identifie chaque aliment visible séparément. Pour CHAQUE aliment, estime : son nom en français, son poids approximatif en grammes tel que visible sur la photo, puis ses calories totales, protéines (g), glucides (g) et lipides (g) CORRESPONDANT À CE POIDS (pas pour 100g). Réponds uniquement avec un JSON strict de cette forme, sans texte autour : {\"items\":[{\"name\":\"\",\"weight_g\":0,\"calories\":0,\"protein_g\":0,\"carbs_g\":0,\"fat_g\":0}]}";
+
+  try{
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'x-goog-api-key': data.geminiKey },
+      body: JSON.stringify({
+        contents:[{ parts:[ { inline_data:{ mime_type: mimeType, data: base64 } }, { text: prompt } ] }],
+        generationConfig:{ response_mime_type: "application/json" }
+      })
+    });
+    const json = await res.json();
+    if(!res.ok){ throw new Error(json.error?.message || 'Erreur API'); }
+    const text = json.candidates[0].content.parts[0].text;
+    const parsed = JSON.parse(text);
+    pendingItems = (parsed.items || []).map(it => ({
+      id: Date.now()+Math.random(),
+      name: it.name || 'Aliment',
+      weight_g: Math.round(it.weight_g || 0),
+      calories: Math.round(it.calories || 0),
+      protein_g: Math.round(it.protein_g || 0),
+      carbs_g: Math.round(it.carbs_g || 0),
+      fat_g: Math.round(it.fat_g || 0),
+    }));
+    statusEl.innerHTML = '✅ Analyse terminée';
+    document.getElementById('confirmBanner').style.display = 'block';
+    document.getElementById('mealTypeSelect').value = guessMealType();
+    renderItems();
+  }catch(e){
+    statusEl.innerHTML = '❌ Échec de l\'analyse : ' + escapeHtml(e.message);
+  }
+}
+
+function addManualItem(){
+  document.getElementById('mealTypeSelect').value = guessMealType();
+  pendingItems.push({ id:Date.now()+Math.random(), name:'', weight_g:0, calories:0, protein_g:0, carbs_g:0, fat_g:0 });
+  renderItems();
+}
+function removeItem(id){ pendingItems = pendingItems.filter(i=>i.id!==id); renderItems(); }
+function updateItem(id, field, value){
+  const it = pendingItems.find(i=>i.id===id); if(!it) return;
+  it[field] = (field==='name') ? value : (parseFloat(value)||0);
+}
+function renderItems(){
+  const el = document.getElementById('itemsList');
+  const actionRow = document.getElementById('mealActionRow');
+  if(pendingItems.length===0){ el.innerHTML=''; actionRow.style.display='none'; return; }
+  actionRow.style.display='flex';
+  el.innerHTML = pendingItems.map(it => `
+    <div class="item-card">
+      <input type="text" class="item-name" style="width:100%; background:transparent; border:none; color:var(--text); font-weight:700; font-size:14px; padding:0 0 8px; outline:none;"
+        value="${escapeHtml(it.name)}" placeholder="Nom de l'aliment" oninput="updateItem(${it.id},'name',this.value)">
+      <div class="item-fields">
+        <div class="field"><label>Poids (g)</label><input type="number" value="${it.weight_g}" oninput="updateItem(${it.id},'weight_g',this.value)"></div>
+        <div class="field"><label>Calories</label><input type="number" value="${it.calories}" oninput="updateItem(${it.id},'calories',this.value)"></div>
+        <div class="field"><label>Protéines (g)</label><input type="number" value="${it.protein_g}" oninput="updateItem(${it.id},'protein_g',this.value)"></div>
+        <div class="field"><label>Glucides (g)</label><input type="number" value="${it.carbs_g}" oninput="updateItem(${it.id},'carbs_g',this.value)"></div>
+        <div class="field"><label>Lipides (g)</label><input type="number" value="${it.fat_g}" oninput="updateItem(${it.id},'fat_g',this.value)"></div>
+      </div>
+      <div class="item-remove"><button onclick="removeItem(${it.id})">Supprimer cet aliment</button></div>
+    </div>`).join('');
+}
+
+function saveMeal(){
+  if(pendingItems.length===0) return;
+  const totals = pendingItems.reduce((acc,it)=>({
+    calories: acc.calories+it.calories, protein_g: acc.protein_g+it.protein_g,
+    carbs_g: acc.carbs_g+it.carbs_g, fat_g: acc.fat_g+it.fat_g
+  }), {calories:0,protein_g:0,carbs_g:0,fat_g:0});
+
+  const k = todayKey();
+  if(!data.meals[k]) data.meals[k] = [];
+  const beforeTotals = todayTotals();
+  data.meals[k].push({
+    id: Date.now(), time: new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),
+    type: document.getElementById('mealTypeSelect').value,
+    items: pendingItems, totals
+  });
+  saveLocalRaw();
+
+  pendingItems = [];
+  document.getElementById('itemsList').innerHTML = '';
+  document.getElementById('photoPreview').style.display = 'none';
+  document.getElementById('analyzeStatus').innerHTML = '';
+  document.getElementById('confirmBanner').style.display = 'none';
+  document.getElementById('mealActionRow').style.display = 'none';
+  document.getElementById('photoInput').value = '';
+  showToast('Repas ajouté au journal ✅');
+  renderMeals();
+  renderMealSummary();
+
+  const afterTotals = todayTotals();
+  if(beforeTotals.prot < data.goals.prot && afterTotals.prot >= data.goals.prot && data.goals.prot>0){
+    checkAndUnlock('protein_goal', 'Objectif protéines atteint aujourd\'hui ! 🥩🎯');
+  } else if(data.goals.prot - afterTotals.prot > 0 && data.goals.prot - afterTotals.prot <= 30){
+    showToast(`Plus que ${Math.round(data.goals.prot - afterTotals.prot)} g de protéines aujourd'hui`);
+  }
+  syncToServer();
+}
+
+function renderMeals(){
+  const list = document.getElementById('mealsList');
+  const todays = data.meals[todayKey()] || [];
+  if(todays.length===0){ list.innerHTML = `<div class="empty"><div class="glyph">🍽️</div>Aucun repas enregistré aujourd'hui</div>`; return; }
+  const typeLabel = Object.fromEntries(MEAL_TYPES.map(([id,ico,lbl])=>[id, ico+' '+lbl]));
+  list.innerHTML = todays.slice().reverse().map(m => `
+    <div class="meal-card">
+      <div class="top">
+        <div><div class="meta">${typeLabel[m.type]||''} · ${m.time} · ${m.items.length} aliment(s)</div></div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span class="cal">${Math.round(m.totals.calories)} kcal</span>
+          <button onclick="deleteMeal(${m.id})">✕</button>
+        </div>
+      </div>
+      <div class="macros">P ${Math.round(m.totals.protein_g)}g · G ${Math.round(m.totals.carbs_g)}g · L ${Math.round(m.totals.fat_g)}g</div>
+    </div>`).join('');
+}
+function deleteMeal(id){
+  const k = todayKey();
+  data.meals[k] = (data.meals[k]||[]).filter(m=>m.id!==id);
+  saveLocalRaw(); renderMeals(); renderMealSummary(); syncToServer();
+}
+
+/* ---------- OBJECTIFS ---------- */
+function barColor(pct){
+  if(pct >= 80) return 'var(--green)';
+  if(pct >= 40) return 'var(--orange)';
+  return 'var(--red)';
+}
+function renderGoals(){
+  document.getElementById('goalCal').value = data.goals.cal;
+  document.getElementById('goalProt').value = data.goals.prot;
+  document.getElementById('goalCarb').value = data.goals.carb;
+  document.getElementById('goalFat').value = data.goals.fat;
+  document.getElementById('geminiKey').value = data.geminiKey;
+  document.getElementById('ntfyTopic').value = data.ntfyTopic || '';
+  document.getElementById('workerUrl').value = data.workerUrl || '';
+
+  const t = todayTotals();
+  const bars = [
+    ['Calories', t.cal, data.goals.cal, 'kcal'],
+    ['Protéines', t.prot, data.goals.prot, 'g'],
+    ['Glucides', t.carb, data.goals.carb, 'g'],
+    ['Lipides', t.fat, data.goals.fat, 'g'],
+  ];
+  document.getElementById('goalBars').innerHTML = bars.map(([name,val,goal,unit])=>{
+    const pct = goal>0 ? Math.min(val/goal,1)*100 : 0;
+    const remaining = Math.round(goal-val);
+    return `<div class="goal-bar-wrap">
+      <div class="goal-bar-top"><span class="name">${name}</span><span class="val">${Math.round(val)} / ${goal} ${unit}${remaining>=0 ? ' · reste '+remaining : ' · dépassé de '+Math.abs(remaining)}</span></div>
+      <div class="goal-bar"><div class="fill" style="width:${pct}%; background:${barColor(pct)};"></div></div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('remainingGrid').innerHTML = `
+    <div class="remaining-tile"><div class="v">${Math.max(0,Math.round(data.goals.cal-t.cal))}</div><div class="l">Kcal restantes</div></div>
+    <div class="remaining-tile"><div class="v">${Math.max(0,Math.round(data.goals.prot-t.prot))} g</div><div class="l">Prot. restantes</div></div>
+    <div class="remaining-tile"><div class="v">${Math.max(0,Math.round(data.goals.carb-t.carb))} g</div><div class="l">Gluc. restants</div></div>
+    <div class="remaining-tile"><div class="v">${Math.max(0,Math.round(data.goals.fat-t.fat))} g</div><div class="l">Lip. restants</div></div>
+  `;
+}
+function onGoalsChange(){
+  data.goals.cal = parseInt(document.getElementById('goalCal').value,10) || 0;
+  data.goals.prot = parseInt(document.getElementById('goalProt').value,10) || 0;
+  data.goals.carb = parseInt(document.getElementById('goalCarb').value,10) || 0;
+  data.goals.fat = parseInt(document.getElementById('goalFat').value,10) || 0;
+  data.geminiKey = document.getElementById('geminiKey').value.trim();
+  saveLocalRaw(); renderGoals();
+  syncToServer();
+}
+function onServerFieldChange(){
+  data.ntfyTopic = document.getElementById('ntfyTopic').value.trim();
+  data.workerUrl = document.getElementById('workerUrl').value.trim().replace(/\/$/, '');
+  saveLocalRaw();
+}
+async function testNotif(){
+  onServerFieldChange();
+  const statusEl = document.getElementById('serverStatus');
+  if(!data.ntfyTopic){ statusEl.textContent = "Renseigne un sujet ntfy d'abord"; return; }
+  try{
+    await fetch(`https://ntfy.sh/${encodeURIComponent(data.ntfyTopic)}`, {
+      method:'POST',
+      headers:{ 'Title':'Test Fluo', 'Content-Type':'text/plain; charset=utf-8' },
+      body:"Si tu vois ça, ntfy fonctionne 🎉"
+    });
+    statusEl.textContent = "✅ Notif de test envoyée — regarde l'appli ntfy";
+  }catch(e){ statusEl.textContent = "❌ Échec de l'envoi — vérifie ta connexion"; }
+}
+async function sendToServer(){
+  onServerFieldChange();
+  const statusEl = document.getElementById('serverStatus');
+  if(!data.workerUrl){ statusEl.textContent = "Renseigne l'URL de ton Worker d'abord"; return; }
+  statusEl.textContent = "Envoi en cours…";
+  try{
+    const res = await fetch(data.workerUrl + '/save', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ topic:data.ntfyTopic, water:data.water, workout:data.workout, goals:data.goals })
+    });
+    if(res.ok){ statusEl.textContent = "✅ Réglages envoyés au serveur"; syncToServer(); }
+    else{ statusEl.textContent = "❌ Le serveur a répondu une erreur"; }
+  }catch(e){ statusEl.textContent = "❌ Impossible de joindre le Worker (vérifie l'URL)"; }
+}
+async function syncToServer(){
+  if(!data.workerUrl) return;
+  const t = todayTotals();
+  try{
+    await fetch(data.workerUrl + '/sync', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ date: isoToday(), cal:t.cal, prot:t.prot, carb:t.carb, fat:t.fat, waterCl:clToday() })
+    });
+  }catch(e){ /* silencieux, la sync est secondaire */ }
+}
+
+/* ---------- SEANCES ---------- */
+function renderDays(){
+  const el = document.getElementById('daysList');
+  el.innerHTML = DAYS.map(([key,label]) => {
+    const day = data.workout.days[key];
+    const name = day ? day.name : '';
+    const exos = day ? day.exercises : [];
+    const exoRows = exos.map(e => `
+      <div class="exercise-row-edit">
+        <input type="text" value="${escapeHtml(e.name)}" placeholder="Exercice" oninput="setExoName('${key}','${e.id}',this.value)">
+        <input type="number" value="${e.sets}" min="1" max="20" oninput="setExoSets('${key}','${e.id}',this.value)">
+        <button onclick="removeExo('${key}','${e.id}')">✕</button>
+      </div>`).join('');
+    return `
+    <div class="day-row" style="flex-direction:column; align-items:stretch;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+        <span class="dayname">${label}</span>
+        <input type="text" placeholder="Repos" value="${escapeHtml(name)}" oninput="setDayName('${key}', this.value)" style="flex:1;">
+      </div>
+      ${name ? `<div class="exercise-editor">
+        ${exoRows}
+        <button class="add-exo-btn" onclick="addExo('${key}')">+ Ajouter un exercice</button>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+  document.getElementById('workoutTime').value = data.workout.time;
+}
+function ensureDay(key){
+  if(!data.workout.days[key]) data.workout.days[key] = { name:'', exercises:[] };
+  return data.workout.days[key];
+}
+function setDayName(key, val){
+  if(val.trim()===''){ data.workout.days[key] = null; }
+  else { const d = ensureDay(key); d.name = val; }
+  saveLocalRaw(); renderDays();
+}
+function addExo(key){
+  const d = ensureDay(key);
+  d.exercises.push({ id: 'e'+Date.now()+Math.floor(Math.random()*1000), name:'', sets:3 });
+  saveLocalRaw(); renderDays();
+}
+function setExoName(key, id, val){ const d=ensureDay(key); const e=d.exercises.find(x=>x.id===id); if(e){ e.name=val; saveLocalRaw(); } }
+function setExoSets(key, id, val){ const d=ensureDay(key); const e=d.exercises.find(x=>x.id===id); if(e){ e.sets=parseInt(val,10)||1; saveLocalRaw(); } }
+function removeExo(key, id){ const d=ensureDay(key); d.exercises = d.exercises.filter(x=>x.id!==id); saveLocalRaw(); renderDays(); }
+function onWorkoutChange(){ data.workout.time = document.getElementById('workoutTime').value; saveLocalRaw(); syncToServer(); }
+
+function renderWorkout(){
+  renderDays();
+  const weekdayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const key = weekdayNames[new Date().getDay()];
+  const today = data.workout.days[key];
+  const zone = document.getElementById('todaySessionZone');
+
+  if(data.todaySessionProgress.date !== isoToday()){
+    data.todaySessionProgress = { date: isoToday(), done:{} };
+    saveLocalRaw();
+  }
+
+  if(!today || !today.name){
+    zone.innerHTML = `<div class="card rest-card"><div class="glyph">😌</div><div style="font-weight:700; margin-top:8px;">Repos aujourd'hui</div></div>`;
+    return;
+  }
+  const totalSets = today.exercises.reduce((s,e)=>s+e.sets,0) || 0;
+  const doneSets = today.exercises.reduce((s,e)=>s+(data.todaySessionProgress.done[e.id]||0),0);
+  const pct = totalSets>0 ? Math.min(doneSets/totalSets,1)*100 : 0;
+  const finished = totalSets>0 && doneSets>=totalSets;
+
+  zone.innerHTML = `
+    <div class="card today-session-card">
+      <h3>Séance du jour · ${escapeHtml(today.name)}</h3>
+      ${today.exercises.map(e => {
+        const done = data.todaySessionProgress.done[e.id]||0;
+        return `<div class="exo-row">
+          <div><div class="exo-name">${escapeHtml(e.name||'Exercice')}</div><div class="exo-sub">${done} / ${e.sets} séries</div></div>
+          <button class="set-btn" onclick="incSet('${e.id}', ${e.sets})">+1</button>
+        </div>`;
+      }).join('') || '<div class="hint">Ajoute des exercices dans le planning ci-dessous.</div>'}
+      <div class="goal-bar" style="margin-top:12px;"><div class="fill" style="width:${pct}%; background:var(--aqua);"></div></div>
+      <div class="hint" style="text-align:center; margin-top:6px;">${doneSets} / ${totalSets} séries au total</div>
+      ${finished
+        ? `<button class="btn-primary full" style="margin-top:10px;" onclick="finishSession()">✅ Terminer la séance</button>`
+        : `<button class="btn-secondary" style="margin-top:10px;" onclick="showToast('Alloz, une série à la fois 💪')">Commencer la séance</button>`}
+    </div>`;
+}
+function incSet(exoId, max){
+  const cur = data.todaySessionProgress.done[exoId] || 0;
+  data.todaySessionProgress.done[exoId] = Math.min(cur+1, max);
+  saveLocalRaw();
+  renderWorkout();
+}
+function finishSession(){
+  data.sessionLog.push({ date: isoToday() });
+  saveLocalRaw();
+  showToast('Séance terminée, bravo ! 💪🔥');
+  if(data.sessionLog.length===1) checkAndUnlock('first_session', 'Succès débloqué : première séance ! 🥇');
+  if(data.sessionLog.length===50) checkAndUnlock('sessions_50', 'Succès débloqué : 50 séances ! 💪');
+  renderWorkout();
+}
+
+/* ---------- STATS ---------- */
+function lastNDays(n){
+  const out = [];
+  const d = new Date();
+  for(let i=n-1;i>=0;i--){
+    const cur = new Date(d); cur.setDate(d.getDate()-i);
+    out.push({ dateObj:cur, key: cur.getFullYear()+'-'+(cur.getMonth()+1)+'-'+cur.getDate(), lbl: cur.toLocaleDateString('fr-FR',{weekday:'short'}).slice(0,2) });
+  }
+  return out;
+}
+function dayTotalsFor(key){
+  const meals = data.meals[key] || [];
+  return meals.reduce((acc,m)=>({ cal:acc.cal+m.totals.calories, prot:acc.prot+m.totals.protein_g }), {cal:0,prot:0});
+}
+function renderBarChart(containerId, values, unit){
+  const max = Math.max(...values.map(v=>v.val), 1);
+  document.getElementById(containerId).innerHTML = `
+    <div class="bar-chart-cols">
+      ${values.map(v => `
+        <div class="bar-chart-col">
+          <div class="bar-chart" style="width:100%;"><div class="bar" style="height:${Math.max(4,(v.val/max)*90)}px;"></div></div>
+          <div class="bar-lbl">${v.lbl}</div>
+        </div>`).join('')}
+    </div>`;
+}
+function renderStats(){
+  const days7 = lastNDays(7);
+  renderBarChart('calChart', days7.map(d=>({ val: dayTotalsFor(d.key).cal, lbl: d.lbl })), 'kcal');
+  renderBarChart('protChart', days7.map(d=>({ val: dayTotalsFor(d.key).prot, lbl: d.lbl })), 'g');
+  renderBarChart('waterChart', days7.map(d=>({ val: (data.glassLog[d.key]||0)*data.water.glassVolume/100, lbl: d.lbl })), 'L');
+
+  const wl = data.weightLog.slice().sort((a,b)=>a.date.localeCompare(b.date)).slice(-30);
+  if(wl.length===0){
+    document.getElementById('weightChart').innerHTML = `<div class="empty">Aucune pesée enregistrée</div>`;
+  } else {
+    const max = Math.max(...wl.map(w=>w.weight));
+    const min = Math.min(...wl.map(w=>w.weight));
+    const range = Math.max(max-min, 1);
+    renderBarChart('weightChart', wl.map(w=>({ val: w.weight-min+range*0.1, lbl: w.date.slice(5) })), 'kg');
+  }
+
+  document.getElementById('statSessionsTotal').textContent = data.sessionLog.length;
+  const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate()-7);
+  const weekCount = data.sessionLog.filter(s=>new Date(s.date) >= weekAgo).length;
+  document.getElementById('statSessionsWeek').textContent = weekCount;
+
+  renderBadgeList('badgeGrid');
+}
+
+/* ---------- Init ---------- */
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+function renderRingTicks(){
+  const g = document.getElementById('ringTicks');
+  const cx=84, cy=84, rOuter=72, marks=24;
+  let svg = '';
+  for(let i=0;i<marks;i++){
+    const angle = (i/marks) * Math.PI * 2;
+    const long = i % 6 === 0;
+    const rInner = long ? rOuter-9 : rOuter-5;
+    const x1 = cx + rInner*Math.cos(angle), y1 = cy + rInner*Math.sin(angle);
+    const x2 = cx + (rOuter+2)*Math.cos(angle), y2 = cy + (rOuter+2)*Math.sin(angle);
+    svg += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"></line>`;
+  }
+  g.innerHTML = svg;
+}
+renderWaterUI(); renderNotes(); renderMeals(); renderMealSummary(); renderGoals(); renderDays(); renderRingTicks(); renderHome(); renderWorkout();
+</script>
+</body>
+</html>
